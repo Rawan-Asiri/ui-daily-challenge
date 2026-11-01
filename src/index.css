@@ -1,0 +1,302 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/noto-kufi-arabic/index.css';
+@import '@fontsource-variable/readex-pro/index.css';
+
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-navy-950: #0a1f40;
+  --color-navy-900: #0f2a52;
+  --color-navy-800: #1a3a6b;
+  --color-navy-700: #2d5088;
+  --color-sky-300: #9ccbfa;
+  --color-sky-200: #c3e0fc;
+  --color-ice: #eaf2fb;
+  --color-mist: #f5f8fc;
+  --color-line: #dce3ec;
+  --color-slate: #5c6c84;
+  --color-amber: #ffc24b;
+
+  /* رخصة خط ثمانية تمنع رفع ملفاته أو استضافتها، لذا يُقرأ من الجهاز إن كان مثبتًا،
+     وتظهر الخطوط الاحتياطية المضمّنة في غير ذلك. */
+  --font-display: 'Thmanyah Sans', 'Noto Kufi Arabic Variable', 'Readex Pro Variable', sans-serif;
+  --font-sans: 'Thmanyah Sans', 'Readex Pro Variable', system-ui, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 1.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-white);
+    color: var(--color-navy-900);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-navy-700);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .on-navy :focus-visible {
+    outline-color: var(--color-amber);
+  }
+
+  /* عنوان البطاقة يستقبل التركيز برمجيًا فقط. */
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+
+  dialog::backdrop {
+    background: rgb(10 31 64 / 0.55);
+  }
+}
+
+/* مساحة العمل: شبكة نقاط كالتي تظهر خلف إطارات برامج التصميم */
+.canvas-dots {
+  background-image: radial-gradient(rgb(156 203 250 / 0.16) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.paper-dots {
+  background-image: radial-gradient(rgb(45 80 136 / 0.16) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* ─── إطار القرعة ─────────────────────────────────────────── */
+
+.draw-frame {
+  --x: 0;
+  --y: 0;
+  --w: 100;
+  --h: 100;
+  --dur: 560ms;
+  --curve: var(--ease-out-soft);
+  position: relative;
+  display: grid;
+}
+
+.draw-frame > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.draw-frame[data-phase='hopping'] {
+  --dur: 90ms;
+  --curve: ease-out;
+}
+
+.draw-frame[data-phase='collapsing'] {
+  --dur: 320ms;
+  --curve: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.selection {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--w) * 1%);
+  height: calc(var(--h) * 1%);
+  border: 1.5px solid var(--selection-color, var(--color-sky-300));
+  pointer-events: none;
+  transition-property: left, top, width, height;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--curve);
+}
+
+.draw-frame[data-phase='landed'] .selection {
+  --selection-color: var(--color-amber);
+  animation: land 420ms var(--ease-out-soft);
+}
+
+.selection-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: var(--color-white);
+  border: 1.5px solid var(--selection-color, var(--color-sky-300));
+}
+
+.selection-tag {
+  position: absolute;
+  top: calc(100% + 7px);
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--selection-color, var(--color-sky-300));
+  color: var(--color-navy-950);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.selection-tag[data-flip='true'] {
+  top: auto;
+  bottom: calc(100% + 7px);
+}
+
+.selection-tag[data-align='center'] {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.selection-tag[data-align='left'] {
+  left: -2px;
+}
+
+.selection-tag[data-align='right'] {
+  right: -2px;
+}
+
+/* البطاقة تنكشف بقص يتبع مربع التحديد تمامًا، فيبدو المربع كأنه يسحبها من الخانة */
+.card-reveal {
+  z-index: 2;
+  clip-path: inset(
+    calc(var(--y) * 1%) calc((100 - var(--x) - var(--w)) * 1%)
+      calc((100 - var(--y) - var(--h)) * 1%) calc(var(--x) * 1%)
+  );
+  transition: clip-path var(--dur) var(--curve);
+}
+
+.card-reveal[data-entering='true'] .card-rise {
+  animation: rise 420ms var(--ease-out-soft) 200ms backwards;
+}
+
+.tile {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.tile[data-lit='true'] {
+  background-color: var(--color-navy-700);
+  color: var(--color-white);
+  transition-duration: 0ms;
+}
+
+/* ─── احتفال الإنجاز ─────────────────────────────────────── */
+
+.burst-piece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  background: var(--piece-color);
+  animation: burst 760ms var(--ease-out-soft) forwards;
+}
+
+.pop-in {
+  animation: pop 420ms var(--ease-out-soft);
+}
+
+/* ─── الطبقات العائمة ────────────────────────────────────── */
+
+.toast-enter {
+  animation: toast-in 280ms var(--ease-out-soft);
+}
+
+dialog[open] {
+  animation: dialog-in 220ms var(--ease-out-soft);
+}
+
+dialog[open]::backdrop {
+  animation: fade-in 220ms ease;
+}
+
+.ruler-tick {
+  transition: background-color 300ms ease;
+  transition-delay: calc(var(--tick) * 18ms);
+}
+
+@keyframes land {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes burst {
+  0% {
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--angle)) translateY(var(--reach)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .burst-piece {
+    display: none;
+  }
+}
